@@ -36,3 +36,8 @@ October 2, 2002
 	find 4.1.6 or earlier by replacing -prune argument with
 	-maxdepth 0 argument.
 
+December 18, 2002
+	Now accommodating >4.1 command-line syntax (requires the rpmbuild
+	command).  Also, more expansive character set, such as with '++'
+	(which was being eaten up by regular expressions).
+	

@@ -9,7 +9,7 @@ use vars qw(
 	    $VERSION
 	    );
 
-$VERSION='0.7';
+$VERSION='0.8';
 
 # ----------------------------------------------------- Plain Old Documentation
 
@@ -211,7 +211,7 @@ n/a
 $version, $release, and $buildloc variables need to have a string length
 greater than zero, else the module causes an exit(1).
 
-$tag must only consist of alphanumeric characters (and perhaps a dash sign),
+$tag must only consist of alphanumeric characters and dash signs '-',
 else the module causes an exit(1).
 
 =item NOTE
@@ -281,13 +281,15 @@ END
     close(IN);
 
     open(RPMRC,">$buildloc/SPECS/rpmrc");
-    foreach my $line (@lines) {
-	if ($line=~/^macrofiles/) {
+    foreach my $line (@lines)
+      {
+	if ($line=~/^macrofiles/)
+	  {
 	    chomp($line);
 	    $line.=":$currentdir/SPECS/rpmmacros\n";
-	}
+	  }
 	print(RPMRC $line);
-    }
+      }
     close(RPMRC);
 
     open(RPMMACROS,">$buildloc/SPECS/rpmmacros");
@@ -302,12 +304,14 @@ END
 
 # ---------------------------------------- Determine $name and other variables.
     my $name;
-    if ($$metadataref{'name'} && $$metadataref{'name'}!~/\W/) {
+    if ($$metadataref{'name'} && $$metadataref{'name'}!~/\W/)
+      {
 	$name=$$metadataref{'name'};
-    }
-    else {
+      }
+    else
+      {
 	$name=$tag;
-    }
+      }
     my $summary=$$metadataref{'summary'};
     my $vendor=$$metadataref{'vendor'};
     my $copyright=$$metadataref{'copyrightname'};
@@ -501,10 +505,14 @@ sub compilerpm {
     # ----------------------------------------- Define commands to be executed.
     # command1a works for rpm version <=4.0.2
     # command1b works for rpm version >4.0.4
+    # Generally speaking (for rpm version 4.1),
+    # the rpmbuild command is substituted if it is available on the system.
     my $command1a="cd $currentdir/SPECS; rpm --rcfile=./rpmrc ".
 	"--target=$arch -ba ".
 	"$name-$version.spec";
-    my $command1b="cd $currentdir/SPECS; rpm --rcfile=./rpmrc ".
+    my $rpmcommand = 'rpm';
+    if (`rpmbuild --version`) {$rpmcommand = 'rpmbuild';}
+    my $command1b="cd $currentdir/SPECS; $rpmcommand --rcfile=./rpmrc ".
 	"-ba --target $arch ".
 	"$name-$version.spec";
     my $command2="cd $currentdir/RPMS/$arch; cp -v ".
@@ -632,16 +640,18 @@ Called by &rpmsrc.
 sub find_info {
     my ($file)=@_;
     print "FILE: $file\n";
+    my $safefile = $file;
+    $safefile =~ s/\+/\\+/g; # Better regular expression matching.
     my $line='';
-    if (($line=`find $file -type f -maxdepth 0`)=~/^$file\n/) {
+    if (($line=`find $file -type f -maxdepth 0`)=~/^$safefile\n/) {
 	$line=`find $file -type f -maxdepth 0 -printf "\%s\t\%m\t\%u\t\%g"`;
 	return("files",split(/\t/,$line));
     }
-    elsif (($line=`find $file -type d -maxdepth 0`)=~/^$file\n/) {
+    elsif (($line=`find $file -type d -maxdepth 0`)=~/^$safefile\n/) {
 	$line=`find $file -type d -maxdepth 0 -printf "\%s\t\%m\t\%u\t\%g"`;
 	return("directories",split(/\t/,$line));
     }
-    elsif (($line=`find $file -type l -maxdepth 0`)=~/^$file\n/) {
+    elsif (($line=`find $file -type l -maxdepth 0`)=~/^$safefile\n/) {
 	$line=`find $file -type l -maxdepth 0 -printf "\%l\t\%m\t\%u\t\%g"`;
 	return("links",split(/\t/,$line));
     }
@@ -661,6 +671,9 @@ Automatically generate an RPM software package from a list of files.
 B<RPM::Make> builds the RPM in a very clean and configurable fashion.
 (Finally!  Making RPMs outside of F</usr/src/redhat> without a zillion
 file intermediates left over!)
+
+B<RPM::Make> should work with both rpm 3.x and rpm 4.x (it has been tested
+on redhat 6.x, redhat 7.x, and redhat 8.x as well as other un*x variants).
 
 B<RPM::Make> generates and then deletes temporary
 files needed to build an RPM with.
