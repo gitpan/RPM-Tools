@@ -23,3 +23,5 @@ June 30, 2002
 	Testing for rpm command in Makefile.PL so as to test successfully
 	against multiple architectures.
 
+July 3, 2002
+	Fine-tuning the documentation.

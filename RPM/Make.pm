@@ -9,7 +9,7 @@ use vars qw(
 	    $VERSION
 	    );
 
-$VERSION='0.4';
+$VERSION='0.5';
 
 # ----------------------------------------------------- Plain Old Documentation
 
@@ -23,6 +23,7 @@ RPM::Make - cleanly generate an RPM
 
     use RPM::Make;
 
+    # The "Manifest": list of files that will comprise the software package.
     my @filelist=('tmproot/file1.txt',
 		  'tmproot/file2.txt',
 		  'tmproot/file3.txt',
@@ -30,15 +31,18 @@ RPM::Make - cleanly generate an RPM
 
     my %doc; my %conf; my %confnoreplace; my %metadata;
 
+    # Define special handling of files.
     $doc{'tmproot/file1.txt'}=1;
     $conf{'tmproot/file2.txt'}=1;
     $confnoreplace{'tmproot/file3.txt'}=1;
 
-    my $pathprefix='tmproot';
-    my $tag='Test';
-    my $version='0.1';
-    my $release='1';
+    # Bare minimum metadata (descriptive data of the software package).
+    my $pathprefix='tmproot'; # Location of files to be included in package.
+    my $tag='Test'; # Default name of the software package.
+    my $version='0.1'; # Version number.
+    my $release='1'; # Release number (versions can have multiple releases).
 
+    # Highly descriptive metadata.
     %metadata=(
 	       'vendor'=>'Excellence in Perl Laboratory',
 	       'summary'=>'Test Software Package',
@@ -56,27 +60,28 @@ RPM::Make - cleanly generate an RPM
                       'RPM::Make is available at http://www.cpan.org/."',
  	       );
 
+    # Temporary "sandbox" (this should not be /tmp because this is deleted!).
     my $buildloc='TempBuildLoc';
 
-    # the "execute" subroutine coordinates all of the RPM building steps
+    # The "execute" subroutine coordinates all of the RPM building steps.
     RPM::Make::execute($tag,$version,$release,$arch,$buildloc,$pathprefix,
 		       \@filelist,\%doc,\%conf,\%confnoreplace,
 		       \%metadata);
 
-    # you can also build an RPM in more atomic steps; these three smaller
-    # steps are equivalent to the execute command
+    # You can also build an RPM in more atomic steps; these three smaller
+    # steps are equivalent to the execute command.
 
-    # Step 1: generate the rpm source location
+    # Step 1: Generate the rpm source location.
     RPM::Make::rpmsrc($tag,$version,$release,$buildloc,$pathprefix,
  	              \@filelist,\%doc,\%conf,\%confnoreplace,
 		      \%metadata);
 
-    # Step 2: build the rpm and copy into the invoking directory
+    # Step 2: Build the rpm and copy into the invoking directory.
     RPM::Make::compilerpm($buildloc,$metadata{'name'},$version,
 			  $release,$arch,
 			  $currentdir,$invokingdir);
 
-    # Step 3: clean the location used to gather and build the rpm
+    # Step 3: Clean the location used to gather and build the rpm.
     RPM::Make::cleanbuildloc($buildloc);
 
 =cut
@@ -95,7 +100,7 @@ use strict;
 
 =head2 RPM::Make::testsystem()
 
-Check to see if RPM builder application is available
+Check to see if RPM builder application is available.
 
 =over 4
 
@@ -109,7 +114,7 @@ n/a
 
 =item ERROR
 
-if /usr/lib/rpm/rpmrc does not exist, print error and exit
+If /usr/lib/rpm/rpmrc does not exist, then print error and exit.
 
 =item NOTE
 
@@ -118,6 +123,7 @@ To date, this testing action has been fully adequate, though imperfect.
 =cut
 
 sub testsystem {
+# ------------ If /usr/lib/rpm/rpmrc does not exist, then print error and exit.
     unless (-e '/usr/lib/rpm/rpmrc') { # part of the expected rpm package
 	print(<<END);
 **** ERROR **** This script only works with a properly installed RPM builder
@@ -141,7 +147,7 @@ Build the RPM in one clean sweep.
 
 =item INPUT
 
-5 scalar strings, 1 array reference, and 4 hash references
+6 scalar strings, 1 array reference, and 4 hash references.
 
 =item OUTPUT
 
@@ -149,7 +155,7 @@ n/a
 
 =item ERROR
 
-n/a (specific to the other subroutines that are called)
+Errors are monitored by the other subroutines that are called.
 
 =item NOTE
 
@@ -160,14 +166,21 @@ First calls &rpmsrc, then &compilerpm, then &cleanbuildloc.
 sub execute {
     my ($tag,$version,$release,$arch,$buildloc,$pathprefix,
 	$filelistref,$docref,$confref,$confnoreplaceref,$metadataref)=@_;
+
+    # --------------------------- Is there rpm building software on the system?
     &testsystem();
+
+    # ---------------------------- Generate a "/usr/src/redhat"-like directory.
     my $name=rpmsrc($tag,$version,$release,$buildloc,$pathprefix,
 	   $filelistref,$docref,$confref,$confnoreplaceref,$metadataref);
 
+    # -------------------------------------------------------- Compile the rpm.
     my $currentdir=`pwd`; chomp($currentdir); my $invokingdir=$currentdir;
     $currentdir.='/'.$buildloc;
     compilerpm($buildloc,$name,$version,$release,$arch,
 	       $currentdir,$invokingdir);
+
+    # ------------------- Clean the temporary "/usr/src/redhat"-like directory.
     cleanbuildloc($buildloc);
 }
 
@@ -177,13 +190,13 @@ sub execute {
 
 =head2 RPM::Make::rpmsrc($tag,$version,$release,$buildloc,$pathprefix,\@filelist,\%doc,\%conf,\%confnoreplace,\%metadata);
 
-Properly assemble the RPM source location (prior to building)
+Properly assemble the RPM source location (prior to building).
 
 =over 4
 
 =item INPUT
 
-5 scalar strings, 1 array reference, and 4 hash references
+5 scalar strings, 1 array reference, and 4 hash references.
 
 =item OUTPUT
 
@@ -206,12 +219,16 @@ Should be called before &compilerpm and &cleanbuildloc.
 sub rpmsrc {
     my ($tag,$version,$release,$buildloc,$pathprefix,
 	$filelistref,$docref,$confref,$confnoreplaceref,$metadataref)=@_;
+
+    # --------------------------- Is there rpm building software on the system?
     &testsystem();
+
+    # ------------------------ Are all the input arguments syntactically valid?
     if (!$version or !$release) { # defined and string length greater than zero
 	print "**** ERROR **** Invalid version or release argument.\n";
 	exit(1);
     }
-    if ($tag=~/\W/) { # non-alphanumeric characters cause problems
+    if ($tag=~/\W/) { # Non-alphanumeric characters cause problems.
 	print(<<END);
 **** ERROR **** Invalid tag name "$tag"
 END
@@ -225,13 +242,12 @@ END
     }
     if (!length($buildloc)) {
 	print(<<END);
-**** ERROR **** buildloc "$buildloc" needs to be defined
+**** ERROR **** buildloc "$buildloc" needs to be defined.
 END
         exit(1);
     }
 
-# ----- Generate temporary directories (subdirs of first command-line argument)
-
+# ---- Generate temporary directories (subdirs of first command-line argument).
     print('Generating temporary directory ./'.$buildloc."\n");
     mkdir($buildloc,0755) or
 	die("**** ERROR **** cannot generate $buildloc directory\n");
@@ -243,7 +259,7 @@ END
     mkdir("$buildloc/RPMS",0755);
     mkdir("$buildloc/RPMS/i386",0755);
 
-# -------------------------------------------------------- Initialize variables
+# ------------------------------------------------------- Initialize variables.
     my $file;
     my $binaryroot=$buildloc.'/BinaryRoot';
     my ($type,$size,$octalmode,$user,$group);
@@ -251,8 +267,7 @@ END
     my $currentdir=`pwd`; chomp($currentdir); my $invokingdir=$currentdir;
     $currentdir.='/'.$buildloc;
 
-# ------------------------------- Create a stand-alone rpm building environment
-
+# ------------------------------ Create a stand-alone rpm building environment.
     print('Creating stand-alone rpm build environment.'."\n");
     open(IN,'</usr/lib/rpm/rpmrc')
 	or die('Cannot open /usr/lib/rpm/rpmrc'."\n");
@@ -279,7 +294,7 @@ END
 END
     close(RPMMACROS);
 
-# ----------------------------------------- Determine $name and other variables
+# ---------------------------------------- Determine $name and other variables.
     my $name;
     if ($$metadataref{'name'} && $$metadataref{'name'}!~/\W/) {
 	$name=$$metadataref{'name'};
@@ -297,8 +312,7 @@ END
     my $pre=$$metadataref{'pre'};
     my $rpmgroup=$$metadataref{'group'};
 
-# ------------------------------------- Print header information for .spec file
-
+# ------------------------------------ Print header information for .spec file.
     open(SPEC,">$buildloc/SPECS/$name-$version.spec");
     print(SPEC <<END);
 Summary: $summary
@@ -336,8 +350,7 @@ $pre
 \%files
 END
 
-# ------------------------------------ Process file list and gather information
-
+# ----------------------------------- Process file list and gather information.
     my %BinaryRootMakefile;
     my %Makefile;
     my %dotspecfile;
@@ -401,12 +414,11 @@ END
 	    }
 	}
     }
-    
-# -------------------------------------- Generate SRPM and BinaryRoot Makefiles
 
-# Generate a much needed directory.
-# This directory is meant to hold all source code information
-# necessary for converting .src.rpm files into .i386.rpm files.
+# ------------------------------------- Generate SRPM and BinaryRoot Makefiles.
+# Generate a much needed "/usr/src/redhat"-like directory for holding all
+# source code information necessary for converting .src.rpm files into
+# .i386.rpm files.
     mkdir("$buildloc/SOURCES/$name-$version",0755);
 
     open(OUTS,">$buildloc/SOURCES/$name-$version/Makefile");
@@ -426,12 +438,12 @@ END
     
     close(SPEC);
 
-# ------------------ mirror copy (BinaryRoot) files under a temporary directory
-
+# ----------------- Mirror copy (BinaryRoot) files under a temporary directory.
     `make -f $buildloc/BinaryRootMakefile directories`;
     `make -f $buildloc/BinaryRootMakefile files`;
     `make -f $buildloc/BinaryRootMakefile links`;
 
+# ----------------------- Build the tarball that will be converted into an rpm.
     print('Build a tarball.'."\n");
     my $command="cd $currentdir/SOURCES; tar czvf $name-$version.tar.gz ".
     "$name-$version";
@@ -447,13 +459,13 @@ END
 
 =head2 RPM::Make::compilerpm($buildloc,$name,$version,$release,$arch,$currentdir,$invokingdir);
 
-Properly assemble the RPM source location (prior to building)
+Properly assemble the RPM source location (prior to building).
 
 =over 4
 
 =item INPUT
 
-8 scalar strings
+7 scalar strings
 
 =item OUTPUT
 
@@ -461,8 +473,10 @@ n/a
 
 =item ERROR
 
-If the B<rpm -ba> command fails when sent to the system execution shell,
-then print an error notice and exit(1).
+If one "rpm" command syntax fails, then try another.  If all "rpm" command
+syntaxes fail, then print error and exit.
+
+If copying the built rpm fails, then print error and exit.
 
 =item NOTE
 
@@ -472,12 +486,13 @@ Should be called after &rpmsrc and before &cleanbuildloc.
 
 sub compilerpm {
     my ($buildloc,$name,$version,$release,$arch,$currentdir,$invokingdir)=@_;
+
+    # --------------------------- Is there rpm building software on the system?
     &testsystem();
 
+    # ----------------------------------------- Define commands to be executed.
     # command1a works for rpm version <=4.0.2
     # command1b works for rpm version >4.0.4
-    # the strategy here is to...try one approach, and then the other
-
     my $command1a="cd $currentdir/SPECS; rpm --rcfile=./rpmrc ".
 	"--target=$arch -ba ".
 	"$name-$version.spec";
@@ -486,6 +501,9 @@ sub compilerpm {
 	"$name-$version.spec";
     my $command2="cd $currentdir/RPMS/$arch; cp -v ".
 	"$name-$version-$release.$arch.rpm $invokingdir/.";
+
+    # ---------------------------------------------- Run the "rpm -ba" command.
+    # The strategy here is to...try one approach, and then the other.
     print "$command1a\n";
     print (`$command1a`);
     if ($?!=0) {
@@ -503,6 +521,8 @@ END
             exit(1);
         }
     }
+
+    # ------- Copy rpm from temporary build location to the invoking directory.
     print "$command2\n";
     print (`$command2`);
     if ($?!=0) {
@@ -534,29 +554,30 @@ n/a
 
 =item ERROR
 
-If the B<rpm -ba> command fails when sent to the system execution shell,
-then print an error notice and exit(1).
+If the input argument is empty, then abort.  Also should abort if cannot
+remove the location specified by the input argument.
 
 =item NOTE
 
-Should be called after &rpmsrc and before &cleanbuildloc.
+Should be called after &rpmsrc and after &compilerpm.
 
 =cut
 
 sub cleanbuildloc {
     my ($buildloc)=@_;
-    &testsystem();
+    # ----------------------------- Make sure that the input argument is valid.
     if (!length($buildloc)) {
 	print(<<END);
-**** ERROR **** buildloc "$buildloc" already exists
+**** ERROR **** No location was specified for the 'cleanbuildloc' subroutine..
 END
         exit(1);
     }
+    # ----------------------------- Try to remove the build location directory.
     else {
 	print (`rm -Rf $buildloc`);
 	if ($?!=0) {
 	    print(<<END);
-**** ERROR **** RPM compilation failed
+**** ERROR **** Removing the $buildloc directory failed.
 END
             exit(1);
 	}
@@ -570,13 +591,13 @@ END
 
 =head2 RPM::Make::find_info($file_system_location);
 
-Recursively gather information from a directory
+Recursively gather information from a directory.
 
 =over 4
 
 =item INPUT
 
-1 scalar string
+1 scalar string.
 
 =item OUTPUT
 
@@ -641,7 +662,7 @@ information, three of which are significant:
 
 =item *
 
-(significant) the filesystem location of these files
+(significant) the filesystem location of these files;
 
 =item *
 
@@ -654,8 +675,7 @@ documentation and configuration files;
 
 =item *
 
-and additional metadata
-associated with the RPM software package.
+and additional metadata associated with the RPM software package.
 
 =back
 
@@ -665,12 +685,11 @@ When using RPM::Make::execute, a temporary directory named $buildloc is
 
 =item *
 
-generated under the directory from which you run your script.
+generated under the directory from which you run your script;
 
 =item *
 
-then deleted after the *.rpm
-file is generated.
+then deleted after the *.rpm file is generated.
 
 =back
 
@@ -678,7 +697,7 @@ The RPM will typically be named
 "$metadata{'name'}-$version-$release.i386.rpm".
 If $metadata{'name'} is not specified, then $tag is used.
 
-Here are some of the items are generated inside
+Here are some of the items that are generated inside
 the $buildloc directory during the construction of an RPM:
 
 =over 4
@@ -764,7 +783,7 @@ any/all suggestions.  -Scott
 
 =head1 LICENSE
 
-Written by Scott Harrison, sharrison@users.sourceforge.net
+Written by Scott Harrison, sharrison@users.sourceforge.net.
 
 Copyright Michigan State University Board of Trustees
 
