@@ -9,7 +9,7 @@ use vars qw(
 	    $VERSION
 	    );
 
-$VERSION='0.3';
+$VERSION='0.4';
 
 # ----------------------------------------------------- Plain Old Documentation
 
@@ -757,14 +757,14 @@ This script requires the C<strict> module.
 =head1 AUTHOR
 
  Scott Harrison
- harris41@msu.edu
+ sharrison@users.sourceforge.net
 
 Please let me know how/if you are finding this module useful and
 any/all suggestions.  -Scott
 
 =head1 LICENSE
 
-Written by Scott Harrison, harris41@msu.edu
+Written by Scott Harrison, sharrison@users.sourceforge.net
 
 Copyright Michigan State University Board of Trustees
 

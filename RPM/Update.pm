@@ -288,7 +288,7 @@ is strongly based is
 Martin Siegert, Simon Fraser University, siegert@sfu.ca
 
 The module packager is Scott Harrison,
-Michigan State University, harris41@msu.edu.
+Michigan State University, sharrison@users.sourceforge.net
 
 =head1 LICENSE
 

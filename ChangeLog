@@ -17,3 +17,9 @@ June 17, 2002
 	version >4.0.2 command-line syntax; fixing pre example in
 	POD synopsis.  The 'clean' target now cleans up rpms made during
 	testing as well as TempBuildLoc.
+
+June 30, 2002
+	Changing e-mail address to sharrison@users.sourceforge.net.
+	Testing for rpm command in Makefile.PL so as to test successfully
+	against multiple architectures.
+
