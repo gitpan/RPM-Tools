@@ -1,0 +1,12 @@
+April 16, 2002
+	Original perl module released, based on my (also CPAN contributed)
+	script "make_rpm.pl".  Works well on RedHat 6.* and RedHat 7.* and
+	is compatible with both rpm version 3.* and rpm version 4.*.
+
+May 16, 2002
+	Fixing a bug in Make.pm to allow customization of the RPM group
+	(such as Utilities/System or Applications/Editors).
+	Minor improvements throughout the module.  Documenting
+	subroutines more clearly.  Supporting multiple smaller steps in 
+	test.pl.  Support handling of different architectures other than
+	i386.

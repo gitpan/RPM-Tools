@@ -14,6 +14,10 @@ my $pathprefix='tmproot';
 my $tag='Test';
 my $version='0.1';
 my $release='1';
+my $arch='i386';
+print(<<END);
+This script will try to build an RPM assuming an i386 architecture.
+END
 
 %metadata=(
            'vendor'=>'Laboratory for GeeksLikeMeNeedExercise Medicine',
@@ -32,19 +36,22 @@ my $release='1';
           'RPM::Make is available at http://www.cpan.org/."',
            );
 
-my $buildloc='TestBuildLoc';
-RPM::Make::execute($tag,$version,$release,$buildloc,$pathprefix,
+my $buildloc='TempBuildLoc';
+RPM::Make::execute($tag,$version,$release,$arch,$buildloc,$pathprefix,
                    \@filelist,\%doc,\%conf,\%confnoreplace,
                    \%metadata);
 
-# execution can also be broken down into these three steps
-#RPM::Make::rpmsrc($tag,$version,$release,$buildloc,$pathprefix,
-#                  \@filelist,\%doc,\%conf,\%confnoreplace,
-#                  \%metadata);
+# execution can also be done with multiple smaller steps
+# (equivalent functionality)
 
-#RPM::Make::compilerpm($buildloc);
+RPM::Make::rpmsrc($tag,$version,$release,$buildloc,$pathprefix,
+                  \@filelist,\%doc,\%conf,\%confnoreplace,
+                  \%metadata);
 
-#RPM::Make::cleanbuildloc($buildloc);
+my $currentdir=`pwd`; chomp($currentdir); my $invokingdir=$currentdir;
+$currentdir.='/'.$buildloc;
 
+RPM::Make::compilerpm($buildloc,$tag,$version,$release,$arch,
+		      $currentdir,$invokingdir);
 
-
+RPM::Make::cleanbuildloc($buildloc);

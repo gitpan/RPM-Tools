@@ -1,12 +1,19 @@
 package RPM::Make;
 
+# Scott Harrison
+
+# In order to view the documentation internal to this module,
+# please type    "perldoc ./Make.pm"
+
 use vars qw(
 	    $VERSION
 	    );
 
-$VERSION='0.1';
+$VERSION='0.2';
 
 # ----------------------------------------------------- Plain Old Documentation
+
+=pod
 
 =head1 NAME
 
@@ -17,30 +24,23 @@ RPM::Make - cleanly generate an RPM
     use RPM::Make;
 
     my @filelist=('tmproot/file1.txt',
-
 		  'tmproot/file2.txt',
-
 		  'tmproot/file3.txt',
-
 		  'tmproot/file4.txt');
 
     my %doc; my %conf; my %confnoreplace; my %metadata;
 
     $doc{'tmproot/file1.txt'}=1;
-
     $conf{'tmproot/file2.txt'}=1;
-
     $confnoreplace{'tmproot/file3.txt'}=1;
 
     my $pathprefix='tmproot';
-
     my $tag='Test';
-
     my $version='0.1';
     my $release='1';
 
     %metadata=(
-	       'vendor'=>'Laboratory for GeeksLikeMeNeedExercise Medicine',
+	       'vendor'=>'Excellence in Perl Laboratory',
 	       'summary'=>'Test Software Package',
 	       'name'=>$tag,
 	       'copyrightname'=>'...',
@@ -56,28 +56,68 @@ RPM::Make - cleanly generate an RPM
               'RPM::Make is available at http://www.cpan.org/.',
 	       );
 
-    my $buildloc='TestBuildLoc';
-    RPM::Make::execute($tag,$version,$release,$buildloc,$pathprefix,
+    my $buildloc='TempBuildLoc';
+
+    # the "execute" subroutine coordinates all of the RPM building steps
+    RPM::Make::execute($tag,$version,$release,$arch,$buildloc,$pathprefix,
 		       \@filelist,\%doc,\%conf,\%confnoreplace,
 		       \%metadata);
 
-    # execution can also be broken down into these three steps
+    # you can also build an RPM in more atomic steps; these three smaller
+    # steps are equivalent to the execute command
+
+    # Step 1: generate the rpm source location
     RPM::Make::rpmsrc($tag,$version,$release,$buildloc,$pathprefix,
  	              \@filelist,\%doc,\%conf,\%confnoreplace,
 		      \%metadata);
 
-    RPM::Make::compilerpm($buildloc,$metadata{'name'},$version,$release,'i386',
+    # Step 2: build the rpm and copy into the invoking directory
+    RPM::Make::compilerpm($buildloc,$metadata{'name'},$version,
+			  $release,$arch,
 			  $currentdir,$invokingdir);
 
+    # Step 3: clean the location used to gather and build the rpm
     RPM::Make::cleanbuildloc($buildloc);
+
+=cut
+
+=pod
+
+=head1 SUBROUTINES
 
 =cut
 
 use strict;
 
-sub testsystem {
-# ------------------------ Check to see if RPM builder application is available
+###############################################################################
 
+=pod
+
+=head2 RPM::Make::testsystem()
+
+Check to see if RPM builder application is available
+
+=over 4
+
+=item INPUT
+
+n/a
+
+=item OUTPUT
+
+n/a
+
+=item ERROR
+
+if /usr/lib/rpm/rpmrc does not exist, print error and exit
+
+=item NOTE
+
+so far this testing has been adequate, though imperfect
+
+=cut
+
+sub testsystem {
     unless (-e '/usr/lib/rpm/rpmrc') { # part of the expected rpm package
 	print(<<END);
 **** ERROR **** This script only works with a properly installed RPM builder
@@ -89,8 +129,36 @@ END
     }
 }
 
+###############################################################################
+
+=pod
+
+=head2 RPM::Make::execute($tag,$version,$release,$arch,$buildloc,$pathprefix,\@filelist,\%doc,\%conf,\%confnoreplace,\%metadata);
+
+Build the RPM in one clean sweep.
+
+=over 4
+
+=item INPUT
+
+5 scalar strings, 1 array reference, and 4 hash references
+
+=item OUTPUT
+
+n/a
+
+=item ERROR
+
+n/a (specific to the other subroutines that are called)
+
+=item NOTE
+
+First calls &rpmsrc, then &compilerpm, then &cleanbuildloc.
+
+=cut
+
 sub execute {
-    my ($tag,$version,$release,$buildloc,$pathprefix,
+    my ($tag,$version,$release,$arch,$buildloc,$pathprefix,
 	$filelistref,$docref,$confref,$confnoreplaceref,$metadataref)=@_;
     &testsystem();
     my $name=rpmsrc($tag,$version,$release,$buildloc,$pathprefix,
@@ -98,10 +166,42 @@ sub execute {
 
     my $currentdir=`pwd`; chomp($currentdir); my $invokingdir=$currentdir;
     $currentdir.='/'.$buildloc;
-    compilerpm($buildloc,$name,$version,$release,'i386',
+    compilerpm($buildloc,$name,$version,$release,$arch,
 	       $currentdir,$invokingdir);
     cleanbuildloc($buildloc);
 }
+
+###############################################################################
+
+=pod
+
+=head2 RPM::Make::rpmsrc($tag,$version,$release,$buildloc,$pathprefix,\@filelist,\%doc,\%conf,\%confnoreplace,\%metadata);
+
+Properly assemble the RPM source location (prior to building)
+
+=over 4
+
+=item INPUT
+
+5 scalar strings, 1 array reference, and 4 hash references
+
+=item OUTPUT
+
+n/a
+
+=item ERROR
+
+$version, $release, and $buildloc variables need to have a string length
+greater than zero, else the module causes an exit(1).
+
+$tag must only consist of alphanumeric characters, else the module
+causes an exit(1).
+
+=item NOTE
+
+Should be called before &compilerpm and &cleanbuildloc.
+
+=cut
 
 sub rpmsrc {
     my ($tag,$version,$release,$buildloc,$pathprefix,
@@ -119,13 +219,13 @@ END
     }
     if (-e "$buildloc") {
 	print(<<END);
-**** ERROR **** buildloc "$buildloc" already exists
+**** ERROR **** buildloc "$buildloc" already exists; remove it before running!
 END
         exit(1);
     }
     if (!length($buildloc)) {
 	print(<<END);
-**** ERROR **** buildloc "$buildloc" already exists
+**** ERROR **** buildloc "$buildloc" needs to be defined
 END
         exit(1);
     }
@@ -195,6 +295,7 @@ END
     my $requires=join("\n",@{$$metadataref{'requires'}});
     my $description=$$metadataref{'description'};
     my $pre=$$metadataref{'pre'};
+    my $group=$$metadataref{'group'};
 
 # ------------------------------------- Print header information for .spec file
 
@@ -207,7 +308,7 @@ Release: $release
 Vendor: $vendor
 BuildRoot: $currentdir/BuildRoot
 Copyright: $copyright
-Group: Utilities/System
+Group: $group
 Source: $name-$version.tar.gz
 AutoReqProv: $autoreqprov
 $requires
@@ -241,7 +342,8 @@ END
     my %Makefile;
     my %dotspecfile;
 
-    foreach my $file (@{$filelistref}) {
+    my @filelist=@{$filelistref}; # do not overwrite $filelistref contents
+    foreach my $file (@filelist) {
 	chomp($file);
 	my $comment="";
 	if ($$confref{$file}) {
@@ -339,15 +441,81 @@ END
     return $name;
 }
 
+###############################################################################
+
+=pod
+
+=head2 RPM::Make::compilerpm($buildloc,$name,$version,$release,$arch,$currentdir,$invokingdir);
+
+Properly assemble the RPM source location (prior to building)
+
+=over 4
+
+=item INPUT
+
+8 scalar strings
+
+=item OUTPUT
+
+n/a
+
+=item ERROR
+
+If the B<rpm -ba> command fails when sent to the system execution shell,
+then print an error notice and exit(1).
+
+=item NOTE
+
+Should be called after &rpmsrc and before &cleanbuildloc.
+
+=cut
+
 sub compilerpm {
     my ($buildloc,$name,$version,$release,$arch,$currentdir,$invokingdir)=@_;
     &testsystem();
-    my $command="cd $currentdir/SPECS; rpm --rcfile=./rpmrc -ba ".
+    my $command="cd $currentdir/SPECS; rpm --rcfile=./rpmrc ".
+	"--target=$arch -ba ".
 	"$name-$version.spec; cd ../RPMS/$arch; cp -v ".
 	"$name-$version-1.$arch.rpm $invokingdir/.";
     print "$command\n";
     print (`$command`);
+    if ($?!=0) {
+	print(<<END);
+**** ERROR **** RPM compilation failed
+END
+        exit(1);
+    }
 }
+
+###############################################################################
+
+=pod
+
+=head2 RPM::Make::cleanbuildloc($buildloc);
+
+Clean build location - usually F<TempBuildLoc> (all the files normally
+associated with a *.src.rpm file).
+
+=over 4
+
+=item INPUT
+
+1 scalar string
+
+=item OUTPUT
+
+n/a
+
+=item ERROR
+
+If the B<rpm -ba> command fails when sent to the system execution shell,
+then print an error notice and exit(1).
+
+=item NOTE
+
+Should be called after &rpmsrc and before &cleanbuildloc.
+
+=cut
 
 sub cleanbuildloc {
     my ($buildloc)=@_;
@@ -360,11 +528,45 @@ END
     }
     else {
 	print (`rm -Rf $buildloc`);
+	if ($?!=0) {
+	    print(<<END);
+**** ERROR **** RPM compilation failed
+END
+            exit(1);
+	}
     }
     return;
 }
 
-# ----- Subroutine: find_info - recursively gather information from a directory
+###############################################################################
+
+=pod
+
+=head2 RPM::Make::find_info($file_system_location);
+
+Recursively gather information from a directory
+
+=over 4
+
+=item INPUT
+
+1 scalar string
+
+=item OUTPUT
+
+n/a
+
+=item ERROR
+
+If $file_system_location is neither a directory, or softlink, or regular file,
+then abort.
+
+=item NOTE
+
+Called by &rpmsrc.
+
+=cut
+
 sub find_info {
     my ($file)=@_;
     my $line='';
@@ -531,7 +733,7 @@ This script requires the C<strict> module.
  Scott Harrison
  harris41@msu.edu
 
-Please let me know how/if you are finding this script useful and
+Please let me know how/if you are finding this module useful and
 any/all suggestions.  -Scott
 
 =head1 LICENSE
@@ -568,4 +770,3 @@ script that I wrote (make_rpm.pl; available at http://www.cpan.org/scripts/).
 Linux
 
 =cut
-
