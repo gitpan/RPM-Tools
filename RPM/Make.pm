@@ -9,7 +9,7 @@ use vars qw(
 	    $VERSION
 	    );
 
-$VERSION='0.6';
+$VERSION='0.7';
 
 # ----------------------------------------------------- Plain Old Documentation
 
@@ -120,6 +120,8 @@ If /usr/lib/rpm/rpmrc does not exist, then print error and exit.
 
 To date, this testing action has been fully adequate, though imperfect.
 
+=back
+
 =cut
 
 sub testsystem {
@@ -160,6 +162,8 @@ Errors are monitored by the other subroutines that are called.
 =item NOTE
 
 First calls &rpmsrc, then &compilerpm, then &cleanbuildloc.
+
+=back
 
 =cut
 
@@ -213,6 +217,8 @@ else the module causes an exit(1).
 =item NOTE
 
 Should be called before &compilerpm and &cleanbuildloc.
+
+=back
 
 =cut
 
@@ -482,6 +488,8 @@ If copying the built rpm fails, then print error and exit.
 
 Should be called after &rpmsrc and before &cleanbuildloc.
 
+=back
+
 =cut
 
 sub compilerpm {
@@ -561,6 +569,8 @@ remove the location specified by the input argument.
 
 Should be called after &rpmsrc and after &compilerpm.
 
+=back
+
 =cut
 
 sub cleanbuildloc {
@@ -592,6 +602,9 @@ END
 =head2 RPM::Make::find_info($file_system_location);
 
 Recursively gather information from a directory.
+(Ideally, I would use the prune invocation of the find command,
+however older versions of 'find' do not have prune (< 4.1.7).  Therefore,
+the work-around is to use maxdepth 0.)
 
 =over 4
 
@@ -612,21 +625,24 @@ then abort.
 
 Called by &rpmsrc.
 
+=back
+
 =cut
 
 sub find_info {
     my ($file)=@_;
+    print "FILE: $file\n";
     my $line='';
-    if (($line=`find $file -type f -prune`)=~/^$file\n/) {
-	$line=`find $file -type f -prune -printf "\%s\t\%m\t\%u\t\%g"`;
+    if (($line=`find $file -type f -maxdepth 0`)=~/^$file\n/) {
+	$line=`find $file -type f -maxdepth 0 -printf "\%s\t\%m\t\%u\t\%g"`;
 	return("files",split(/\t/,$line));
     }
-    elsif (($line=`find $file -type d -prune`)=~/^$file\n/) {
-	$line=`find $file -type d -prune -printf "\%s\t\%m\t\%u\t\%g"`;
+    elsif (($line=`find $file -type d -maxdepth 0`)=~/^$file\n/) {
+	$line=`find $file -type d -maxdepth 0 -printf "\%s\t\%m\t\%u\t\%g"`;
 	return("directories",split(/\t/,$line));
     }
-    elsif (($line=`find $file -type l -prune`)=~/^$file\n/) {
-	$line=`find $file -type l -prune -printf "\%l\t\%m\t\%u\t\%g"`;
+    elsif (($line=`find $file -type l -maxdepth 0`)=~/^$file\n/) {
+	$line=`find $file -type l -maxdepth 0 -printf "\%l\t\%m\t\%u\t\%g"`;
 	return("links",split(/\t/,$line));
     }
     die("**** ERROR **** $file is neither a directory, soft link, or file.\n");

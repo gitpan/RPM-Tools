@@ -29,3 +29,10 @@ July 3, 2002
 September 11, 2002
 	Supporting dashes inside RPM name (previously, only alphanumeric
 	characters were supported).
+
+October 2, 2002
+	POD fix (incorporating an =back statement to correspond with
+	the =over statements).  Making backwards compatible with GNU
+	find 4.1.6 or earlier by replacing -prune argument with
+	-maxdepth 0 argument.
+
