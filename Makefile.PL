@@ -11,6 +11,9 @@ WriteMakefile(
     'DISTNAME'      => 'RPM-Tools',
     'dist'          => { COMPRESS => 'gzip --best', SUFFIX => 'gz' },
     ($] >= 5.005 ? (
-      'AUTHOR'        => 'Scott Harrison <harris41@msu.edu>',
-    ) : () )
+      'AUTHOR'        => 'Scott Harrison <sharrison@sourceforge.net>',
+    ) : () ),
+    'clean'		=> {
+	'FILES'	=> 'TempBuildLoc/ Test*.rpm',
+    },
 );

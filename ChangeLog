@@ -10,3 +10,10 @@ May 16, 2002
 	subroutines more clearly.  Supporting multiple smaller steps in 
 	test.pl.  Support handling of different architectures other than
 	i386.
+
+June 17, 2002
+	Fixing several bugs:  no more duplication of $group variable name;
+	no more hardcoding of RPM release number; accommodating rpm
+	version >4.0.2 command-line syntax; fixing pre example in
+	POD synopsis.  The 'clean' target now cleans up rpms made during
+	testing as well as TempBuildLoc.
