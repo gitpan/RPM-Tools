@@ -1,3 +1,5 @@
+use lib ".";
+
 use RPM::Make;
 
 my @filelist=('tmproot/file1.txt',
@@ -11,7 +13,7 @@ $conf{'tmproot/file2.txt'}=1;
 $confnoreplace{'tmproot/file3.txt'}=1;
 
 my $pathprefix='tmproot';
-my $tag='Test';
+my $tag='Test-Package';
 my $version='0.1';
 my $release='1';
 my $arch='i386';

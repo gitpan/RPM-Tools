@@ -25,3 +25,7 @@ June 30, 2002
 
 July 3, 2002
 	Fine-tuning the documentation.
+
+September 11, 2002
+	Supporting dashes inside RPM name (previously, only alphanumeric
+	characters were supported).

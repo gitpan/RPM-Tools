@@ -9,7 +9,7 @@ use vars qw(
 	    $VERSION
 	    );
 
-$VERSION='0.5';
+$VERSION='0.6';
 
 # ----------------------------------------------------- Plain Old Documentation
 
@@ -207,8 +207,8 @@ n/a
 $version, $release, and $buildloc variables need to have a string length
 greater than zero, else the module causes an exit(1).
 
-$tag must only consist of alphanumeric characters, else the module
-causes an exit(1).
+$tag must only consist of alphanumeric characters (and perhaps a dash sign),
+else the module causes an exit(1).
 
 =item NOTE
 
@@ -228,7 +228,7 @@ sub rpmsrc {
 	print "**** ERROR **** Invalid version or release argument.\n";
 	exit(1);
     }
-    if ($tag=~/\W/) { # Non-alphanumeric characters cause problems.
+    if ($tag=~/[^\w-]/) { # Non-alphanumeric characters cause problems.
 	print(<<END);
 **** ERROR **** Invalid tag name "$tag"
 END
