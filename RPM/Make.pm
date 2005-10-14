@@ -5,11 +5,13 @@ package RPM::Make;
 # In order to view the documentation internal to this module,
 # please type    "perldoc ./Make.pm"
 
+# Updated so that "post" and "postun" things work
+
 use vars qw(
 	    $VERSION
 	    );
 
-$VERSION='0.8';
+$VERSION='0.9';
 
 # ----------------------------------------------------- Plain Old Documentation
 
@@ -322,6 +324,10 @@ END
     my $pre=$$metadataref{'pre'};
     my $rpmgroup=$$metadataref{'group'};
 
+    # special magic steve changes. aaa-woooooo.
+    my $post=$$metadataref{'post'};
+    my $postun=$$metadataref{'postun'};
+
 # ------------------------------------ Print header information for .spec file.
     open(SPEC,">$buildloc/SPECS/$name-$version.spec");
     print(SPEC <<END);
@@ -355,7 +361,10 @@ make ROOT="\$RPM_BUILD_ROOT" SOURCE="$currentdir/BinaryRoot" links
 $pre
 
 \%post
+$post
+
 \%postun
+$postun
 
 \%files
 END
